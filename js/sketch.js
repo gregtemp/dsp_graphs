@@ -37,12 +37,12 @@ function draw() {
         
         out = osc2.y(out * osc1.get_x_range()[1]);
         let out2 = adsr.y(i * adsr.length);
-        vertex(i * 600, -out2);
+        vertex(i * 600, -out2*100);
     } 
     endShape();
 
     for (let p of adsr.p) {
-        point(p[0], p[1]);
+        point(p[0], p[1] * 100);
     }
     pop();
 

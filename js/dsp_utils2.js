@@ -139,18 +139,14 @@ class Envelope {
     }
 
     get_length() {
-        let env_length = 0;
-        for (let point of this.points) {
-            env_length += point[0]; // add x components of points together
-        }
-        return env_length;
+        return this.points[this.points.length-1][0];
     }
 
 }
 
 
 class ADSR {
-    constructor(attack, sustain, decay, release) {
+    constructor(attack, decay, sustain, release) {
         this.attack = attack || 10;
         this.decay = decay || 50;
         this.sustain = sustain || 0.5;
