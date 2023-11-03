@@ -1,3 +1,3 @@
-# Template p5 project
+# DSP Graphs Project
 
-This is the README file for the entire project. For more official projects you should write information here about the nature of the project, your name, any special explanations of how the project works, etc.
+This will hopefully, eventually be a library to easily make interactive graphs to illustrate dsp functions. I'm still sort of figuring out how I want it to look/work.
