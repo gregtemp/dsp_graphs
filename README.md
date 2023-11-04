@@ -1,4 +1,3 @@
-
 # DSP Graphs Project
 
 This is a little lib for making some pretty graphs, here's what I have so far.
@@ -179,4 +178,3 @@ function draw() {
 
 }
 ```
->>>>>>> 980991c95a1dd099530b4d270ebdd1dd3024d981
