@@ -1,88 +1,159 @@
 
 // dsp_utils.js
-let pi = 3.14159265359;
-let twopi = pi * 2;
 
-class Wave {
-    // generic oscillator
-    constructor(shape, freq, range) {
-        this.shape = shape;
-        this.freq = freq || 1;
-        this.range = range || [-1., 1]
-        this.phase = 0;
-        this.input = undefined;
-        this.gain = 1.;
-        this.drawable = false;
-        this.input_to = "phase";
-    }
+class FunctionObject {
+    constructor() {
+        this.params = {
+            freq: 1,
+            xrange: [-1., 1],
+            range: [-1., 1],
+            phase: 0,
+            gain: 1,
+            drawable: false,
+            offset: 0,
+            shape: undefined
+        };
 
-    plot(x) {
-        if (this.input && this.input_to === "phase") {
-            this.phase = this.input.plot(x);
-        }
-        else if (this.input && this.input_to === "gain") {
-            this.gain = this.input.plot(x);
-        }
-        else if (this.input && this.input_to === "freq") {
-            this.freq = this.input.plot(x);
-        }
+        this.gen = {
+            sine: (x) => {
+                let y = (Math.sin(x * this.params.freq + this.params.phase) / 2. + 0.5);
+                return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
+            },
+            square: (x) => {
+                let y = (Math.floor((x * this.params.freq + this.params.phase) / Math.PI) % 2);
+                return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
+            },
+            saw_up: (x) => {
+                let y = 1 - (((x * this.params.freq + this.params.phase) / Math.PI) % 1);
+                return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
+            },
+            saw_down: (x) => {
+                let y = (((x * this.params.freq + this.params.phase) / Math.PI) % 1);
+                return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
+            }
+        };
+    
+        this.sat = {
+            tanh: (x) => {
+                return Math.tanh(x * this.params.gain + this.params.offset) * (this.params.range[1] - this.params.range[0]) + this.params.range[0];
+            },
+            sine: (x) => {
+                return Math.sin(x * this.params.gain + this.params.offset) * (this.params.range[1] - this.params.range[0]) + this.params.range[0];
+            },
+            clip: (x) => {
+                x = x * this.params.gain + this.params.offset;
+                if (x >= this.params.range[1]) return 1;
+                else if (x <= this.params.range[0]) return -1;
+                else return x;
+            }
+        };
 
-        let range = this.range;
-        if (this.shape === 'sine') {
-                let y = (Math.sin(x * this.freq + this.phase) / 2. + 0.5);
-                return (y * (range[1] - range[0]) + range[0]) * this.gain;
-        } else if (this.shape === 'square') {
-                let y = 1.- (Math.floor((x*this.freq + this.phase) / pi) % 2)
-                return (y * (range[1] - range[0]) + range[0]) * this.gain;
-        } else if (this.shape === 'saw_up') {
-                let y = 1. - (((x*this.freq + this.phase) / pi) % 1)
-                return (y * (range[1] - range[0]) + range[0]) * this.gain;
-        } else if (this.shape === 'saw_down') {
-                let y = (((x*this.freq + this.phase) / pi) % 1);
-                return (y * (range[1] - range[0]) + range[0]) * this.gain;
-        }
     }
 }
 
-class Waveshaper{
-    constructor (type, input, gain) {
-        this.type = type || 'tanh';
-        this.input = input || undefined;
-        this.gain = 1. || gain;
-        this.drawable = false;
+class Osc extends FunctionObject {
+    constructor(arg) {
+        super();
+        this.xrange = [0, Math.PI*2];
+        // If arg is a string, assume it's the 'shape' parameter
+        if (typeof arg === 'string') {
+            this.params.shape = arg;
+            this.y_func = this.gen[arg];
+        }
+        // If arg is an object, assume it's a dictionary of parameters
+        else if (typeof arg === 'object') {
+            this.set_params(arg);
+            this.y_func = this.gen[this.params.shape];
+        }
     }
 
-    plot(x) {
-        if (this.input) {
-            x = this.input.plot(x);
-        }
-        
-        if (this.type === 'tanh') {
-            return Math.tanh(x * this.gain)
-        }
-        else if (this.type === 'sine') {
-            return Math.sin(x)
-        }
-        else if (this.type === 'hard_clip') {
-            if (x >= 1) return 1.
-            else if (x <= -1) return -1;
-            else return x;
+    set_params(param_dict) {
+        for (let key in param_dict) {
+            this.params[key] = param_dict[key];
         }
     }
+    y(x) {
+        return this.y_func(x);
+    }
+}
+
+class Sat extends FunctionObject {
+    constructor(arg) {
+        super();
+        this.xrange = [-1., 1];
+        // If arg is a string, assume it's the 'shape' parameter
+        if (typeof arg === 'string') {
+            this.params.shape = arg;
+            this.y_func = this.sat[arg];
+        }
+        // If arg is an object, assume it's a dictionary of parameters
+        else if (typeof arg === 'object') {
+            this.params(arg);
+            this.y_func = this.sat[this.params.shape];
+        }
+    }
+
+    params(param_dict) {
+        for (let key in param_dict) {
+            this.params[key] = param_dict[key];
+        }
+    }
+    y(x) {
+        return this.y_func(x);
+    }
+
+    get_x_range() {
+        return [-1., 1.];
+    }
+}
+
+
+class Envelope {
+    constructor(points) {
+        // Ensure points are sorted by x-value
+        this.points = points;
+        this.env_length = this.get_length();
+    }
+
+
+    y(x) {
+        let p = this.points;
+        for (let i = 1; i < p.length; i++) {
+            if (p[i][0] >= x) {
+                let a = {x: p[i - 1][0], y: p[i - 1][1]};
+                let b = {x: p[i][0], y: p[i][1]};
+    
+                if (b.x === a.x) {
+                    // Avoid division by zero
+                    return b.y;
+                }
+    
+                let y = a.y + (x - a.x) * (b.y - a.y) / (b.x - a.x);
+                return y;
+            }
+        }
+        return 0;  // Return 0 if x is out of range
+    }
+
+    get_length() {
+        return this.points[this.points.length-1][0];
+    }
+
 }
 
 
 class ADSR {
-    constructor(attack, sustain, decay, release) {
+    constructor(attack, decay, sustain, release) {
         this.attack = attack || 10;
         this.decay = decay || 50;
         this.sustain = sustain || 0.5;
-        this.sustain_time = 100;
+        this.sustain_time = (attack + decay + release)/2 || 100;
         this.release = release || 100;
         this.length = this.attack + this.decay + this.sustain_time + this.release;
         this.amount = 1;
         this.offsety = 0;
         this.input = undefined;
+        this.xrange = [0., this.length];
 
         this.p = [
             [0, 0],
@@ -91,40 +162,16 @@ class ADSR {
             [this.attack + this.decay + this.sustain_time, this.sustain],
             [this.attack + this.decay + this.sustain_time + this.release, 0]
         ];
+
+        this.envelope = new Envelope(this.p);
+    }
+    
+    y(x) {
+        return this.envelope.y(x);
     }
 
     get_length() {
-        return this.attack + this.decay + this.sustain_time + this.release;
-    }
-
-    pulse(x, start, end) {
-        if (x >= start && x < end) {
-            return 1;
-        }
-        else return 0;
-    }
-
-    line_segment(x, p1, p2) {
-        let m = (p2[1] - p1[1])/(p2[0] - p1[0]); // slope = rise over run
-        let b = p2[1] - m * p2[0]; // Using the point-slope form to find b (y-intercept)
-        return (m * x + b) * this.pulse(x, p1[0], p2[0]);
-    }
-
-    plot(x){
-        let env = this.line_segment(x, this.p[0], this.p[1]);  // Attack
-        env += this.line_segment(x, this.p[1], this.p[2]); // Decay
-        env += this.sustain * this.pulse(x, this.p[2][0], this.p[3][0])  // Sustain
-        env += this.line_segment(x, this.p[3], this.p[4])  // Release
-        env = (env * this.amount + this.offsety)*-1;
-        if (this.input) {
-            return env * this.input.plot(x);
-        }
-        else {
-            return env;
-        }
-        
+        return this.envelope.env_length;
     }
 
 }
-
-// export default Wave;

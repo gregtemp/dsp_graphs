@@ -2,10 +2,9 @@
 
 // ui_utils.js
 class Graph {
-    constructor(input, pos, size){
+    constructor(func, pos, size){
         this.pos = pos || [0, 0];
         this.size = size || [400, 100]
-        this.input = input || undefined;
         this.strokeWeight = 3;
         this.stroke = 255;
         this.show_axis = true;
@@ -13,11 +12,18 @@ class Graph {
         this.mouse_inside = false;
         this.show_trace = false;
         this.trace = [0,0];
-        this.xrange = [0, TWO_PI];
+        this.xrange = [0, Math.PI * 2];
+        this.func = func || undefined;
         
     }
 
-    draw(){
+    setup(func_object) {
+        this.func = func_object;
+        this.xrange = func_object.xrange || [0, Math.PI * 2.];
+    }
+
+    draw(func_object){
+        
         push();
 
         translate(this.pos[0] - this.size[0]/2, this.pos[1]);
@@ -30,17 +36,13 @@ class Graph {
         
         // waveform
         beginShape();
-        for (let i = 0; i < int(this.size[0]); i ++) {
-            let x = float(i)/this.size[0];
-            vertex(x * this.size[0], (this.input.plot(x*this.range[1]+this.range[0]) * this.size[1]/2));
+        for (let i = 0; i <= 1; i+= 1/500){
+            let x = i * Math.abs(this.xrange[1]-this.xrange[0]) + this.xrange[0];
+            let y = func_object.y(x);
+            vertex(i * this.size[0], -y * this.size[1]/2);
+
         }
         endShape();
-
-        if (this.show_trace === true && this.mouse_inside === true) {
-            stroke("#FF5A5F");
-            fill("#FF5A5F");
-            ellipse(this.trace[0], this.trace[1]*this.size[1]/2, 10, 10);
-        }
 
         pop();
     }
@@ -48,9 +50,9 @@ class Graph {
     draw_axis(){
         // axis
         strokeWeight(1);
-        stroke(70);
+        stroke(170);
         line(0, 0, this.size[0], 0);
-        line(0, -this.size[1]*.7, 0, this.size[1]*.7);
+        line(0, -this.size[1]*.6, 0, this.size[1]*.6);
     }
 
     handle_mouse(mx, my){
@@ -67,9 +69,6 @@ class Graph {
         }
         else {
             this.mouse_inside = false;
-        }
-        if (this.show_trace === true && this.mouse_inside === true) {
-            this.trace = [mx, this.input.plot(mx/this.size[0] * this.range[1] + this.range[0])];
         }
     }
 }
@@ -113,12 +112,15 @@ class Slider {
         rect(0, 0, this.size[0], this.size[1]);
         
         // set value
-        this.value = constrain(-this.amt / this.size[1], 0., 1.) * (this.range[1]-this.range[0]) + this.range[0];
+        this.value = constrain(this.amt / this.size[1], 0., 1.) * (this.range[1]-this.range[0]) + this.range[0];
         
         strokeWeight(3);
-        line(-this.size[0]/2, this.amt + this.size[1]/2, this.size[0]/2, this.amt + this.size[1]/2);
+        line(-this.size[0]/2, (this.size[1]/2) - this.amt, this.size[0]/2, (this.size[1]/2) - this.amt);
         //line(this.pos[0]-this.size[0]/2, this.pos[0] - this.size[0]/2,this.pos[0] + this.size[0]/2, this.pos[0] - this.size[0]/2);
         pop();
+
+        this.handle_mouse(mouseX, mouseY);
+        
     }
 
     handle_mouse(mx, my) {
@@ -129,7 +131,7 @@ class Slider {
         && my >= - this.size[1]/2 - 1
         && my <= + this.size[1]/2 + 1){
             if (mouseIsPressed===true) {
-                this.set_amt(my);
+                this.amt = Math.abs(this.size[1]/2 - my);            
             }
             //console.log(mouseX, mouseY);
             this.mouse_inside = true;
@@ -140,10 +142,10 @@ class Slider {
         
     }
 
-    set_amt(my) {
-        my = my - this.pos[1] - this.size[1]/2;
-        this.amt = my;
-    }
+    // set_amt(my) {
+    //     my = my - this.pos[1] - this.size[1]/2;
+    //     this.amt = my;
+    // }
 
 }
 
