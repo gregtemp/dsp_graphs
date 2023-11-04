@@ -128,21 +128,21 @@ viz.draw(obj);
 Yes hi its me again, the stuff above is chatgpt and now I'm back
 
 ```javascript
+// set up some oscillators
 let osc1 = new Osc("sine");
-let osc2 = new Osc({shape: "square", freq: 2, gain:1.});
-let adsr = new ADSR(2, 10, 0.7, 20);
+let osc2 = new Osc({shape: "square", freq: 2, gain:1.}); // we can pass a dictionary of params here also
 
-let viz = new Graph();
-let viz2 = new Graph();
+let viz = new Graph(); // main graph
+let viz2 = new Graph(); // lil graph underneath
 
-let slide = new Slider("Osc2 Phase");
+let slide = new Slider("Osc2 Phase"); // slap a slider in there with a label
 
 
 let obj = {
     y: (x) => {
-        return osc1.y(x + osc2.y(x));
+        return osc1.y(x + osc2.y(x)); // custom function, you can put whatever in here just make sure you define the x range
     },
-    xrange: osc1.xrange
+    xrange: osc1.xrange // important, this is the range of x values that will be passed to your function
 }
 
 function setup() {
@@ -153,11 +153,11 @@ function setup() {
     viz.pos = [width/2, height/2];
     slide.pos = [viz.pos[0]- (viz.size[0]/2 + 40), viz.pos[1]];
 
-    viz.setup(obj);
+    viz.setup(obj); // this setup thing is sort of just a helper thing to automagically set some stuff up
 
     viz2.size[0] = viz.size[0];
     viz2.pos = [...viz.pos];
-    viz2.pos[1] += 300;
+    viz2.pos[1] += 300; // put the second graph below the first one
     viz2.setup(osc2);
 
 }
@@ -167,8 +167,10 @@ function draw() {
     background(0);
 
     
-    osc2.params.phase = slide.value * TAU;
-    //osc2.gain = 0.5;
+    osc2.params.phase = slide.value * TAU; // probably shouldve set the range of our slider to this but whatever
+    //osc2.gain = 0.5; // osc2 and osc1 are still in there so you can just assign the slide.value to their params willy nilly
+
+    // draw the rest of the stuff and you're done. this will be more automagic later
     viz.draw(obj);
     viz2.draw(osc2);
 
