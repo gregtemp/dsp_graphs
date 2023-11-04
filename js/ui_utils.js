@@ -183,22 +183,5 @@ class Container {
         }
     }
 
-    connect(key1, key2) {
-        let op1 = this.operators[key2];
-        let op2 = this.operators[key1];
-        
-        op1.input = op2;
-    }
-    
-    update(update_string) {
-        let commands = update_string.split(" ");
-        this.operators[commands[0]][commands[1]] = this.operators[commands[2]][commands[3]];
-
-    }
-
-    op(key){
-        return this.operators[key];
-    }
-
 }
 

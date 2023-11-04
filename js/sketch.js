@@ -31,11 +31,10 @@ function setup() {
     createCanvas(windowWidth, windowHeight);
     
     
-    //osc2.params.gain = 1.5;
     viz.size = [600, 300];
     viz.pos = [width/2, height/2];
     slide.pos = [viz.pos[0]- (viz.size[0]/2 + 40), viz.pos[1]];
-    //viz.xrange = [0, adsr.length];
+
     viz.setup(obj);
 
     viz2.size[0] = viz.size[0];
