@@ -1,6 +1,10 @@
 # DSP Graphs Project
 
 This is a little lib for making some pretty graphs, here's what I have so far.
+This works with P5JS
+it doesnt make any sound, just pretty graphs
+
+
 DSP Utilities
   - Osc
   - Sat
