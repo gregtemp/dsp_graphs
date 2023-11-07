@@ -14,6 +14,14 @@ class FunctionObject {
             shape: undefined
         };
 
+        this.window = {
+            hanning: (x) => {
+                //x = ((x - this.params.xrange[0]) / (this.params.xrange[1] - this.params.xrange[0])) * 2 * Math.PI; // hanning is based on cos so expects 0-TAU input
+                let y = 0.5 * (1 - Math.cos(x * this.params.freq + this.params.phase));
+                return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
+            }
+
+        }
         this.gen = {
             sine: (x) => {
                 let y = (Math.sin(x * this.params.freq + this.params.phase) / 2. + 0.5);
@@ -73,7 +81,34 @@ class Osc extends FunctionObject {
         }
     }
     y(x) {
-        return this.y_func(x);
+        return this.y_func(x); 
+    }
+}
+
+class Window extends FunctionObject {
+    constructor(arg) {
+        super();
+        this.xrange = [0, Math.PI*2];
+        this.range = [0, 1];
+        // If arg is a string, assume it's the 'shape' parameter
+        if (typeof arg === 'string') {
+            this.params.shape = arg;
+            this.y_func = this.window[arg];
+        }
+        // If arg is an object, assume it's a dictionary of parameters
+        else if (typeof arg === 'object') {
+            this.set_params(arg);
+            this.y_func = this.window[this.params.shape];
+        }
+    }
+
+    set_params(param_dict) {
+        for (let key in param_dict) {
+            this.params[key] = param_dict[key];
+        }
+    }
+    y(x) {
+        return this.y_func(x); 
     }
 }
 
