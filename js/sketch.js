@@ -1,61 +1,56 @@
 
 
 
+// 
+// maybe oscs and sliders and stuff should be set
+// up automatically in the graph and connected
+//
 
 
-// let osc1 = new Wave("sine");
-// let osc2 = new Wave("sine");
-// let softclip = new Waveshaper("tanh");
-
-// let graph1 = new Graph();
-
-
-let osc1 = new Osc("sine");
-let osc2 = new Osc({shape: "saw_up", freq: 0.5, gain:1.});
+let osc1 = new Osc({shape: "sine", freq: 1});
+let osc2 = new Osc({shape: "saw_up", freq: 2, gain:1.});
 
 let hanning = new Window("hanning");
 
-let adsr = new ADSR(2, 10, 0.7, 20);
+let adsr = new ADSR(1, 15, 0.2, 75);
+adsr.set_params({sustain_time: 10});
+
+let adsr2 = new ADSR(1, 30, 0.8, 60);
+adsr2.set_params({sustain_time: 10});
 
 let viz = new Graph();
 let viz2 = new Graph();
 
-let slide = new Slider("Osc2 Phase");
-let slide2 = new Slider("Osc2 Amplitude");
+let slide = new Slider("PE Amt");
+slide.range = [1., 5];
 
 
-let obj = {
+
+
+obj = {
     y: (x) => {
-        return osc1.y(x + osc2.y(x));
+        return osc1.y((adsr.integrate_y(x))*slide.value) * adsr2.y(x);
     },
-    xrange: osc1.xrange
-}
-
-let osc2hanning = {
-    y: (x) => {
-        return osc2.y(x) * hanning.y(x);
-    },
-    xrange: osc2.xrange
+    xrange: adsr.xrange
 }
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     
     
-    viz.size = [600, 300];
+    viz.size = [600, 200];
     viz.pos = [width/2, height/3];
     
 
-    viz.setup(obj);
+    viz.setup(adsr2);
 
-    viz2.size[0] = viz.size[0];
+    viz2.size = [...viz.size];
     viz2.pos = [...viz.pos];
     viz2.pos[1] *= 2;
-    viz2.setup(hanning);
+    viz2.setup(adsr2);
 
     slide.pos = [viz2.pos[0]- (viz2.size[0]/2 + 40), viz2.pos[1]];
-    slide2.pos = [slide.pos[0]- (slide.size[0]/2 + 40), slide.pos[1]];
-
+   
 }
   
 
@@ -64,16 +59,18 @@ function draw() {
 
     fill(255);
     textAlign(CENTER);
-    text("Osc1 Phase is modulated by Osc2", width/2, 20);
+    text("Osc1 pitch is controlled with ADSR", width/2, 20);
     
-    osc2.params.phase = slide.value * TAU;
-    osc2.params.gain = slide2.value;
+    //osc1.params.freq = slide2.value;
+    // osc2.params.gain = slide2.value;
+
+
     //osc2.gain = 0.5;
     viz.draw(obj);
-    viz2.draw(osc2hanning);
+    viz2.draw(adsr);
 
     slide.draw();
-    slide2.draw();
+
 
 
 }

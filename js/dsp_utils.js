@@ -12,12 +12,13 @@ class FunctionObject {
             drawable: false,
             offset: 0,
             shape: undefined
+            
         };
 
         this.window = {
             hanning: (x) => {
                 //x = ((x - this.params.xrange[0]) / (this.params.xrange[1] - this.params.xrange[0])) * 2 * Math.PI; // hanning is based on cos so expects 0-TAU input
-                let y = 0.5 * (1 - Math.cos(x * this.params.freq + this.params.phase));
+                let y = 0.5 * (1 - Math.cos(x * this.params.freq + this.params.phase)) + 0.5;
                 return (y * (this.params.range[1] - this.params.range[0]) + this.params.range[0]) * this.params.gain + this.params.offset;
             }
 
@@ -57,6 +58,15 @@ class FunctionObject {
         };
 
     }
+    
+    set_params(param_dict) {
+        for (let key in param_dict) {
+            this.params[key] = param_dict[key];
+        }
+    }
+    y(x) {
+        return this.y_func(x); 
+    }
 }
 
 class Osc extends FunctionObject {
@@ -75,14 +85,7 @@ class Osc extends FunctionObject {
         }
     }
 
-    set_params(param_dict) {
-        for (let key in param_dict) {
-            this.params[key] = param_dict[key];
-        }
-    }
-    y(x) {
-        return this.y_func(x); 
-    }
+
 }
 
 class Window extends FunctionObject {
@@ -102,14 +105,6 @@ class Window extends FunctionObject {
         }
     }
 
-    set_params(param_dict) {
-        for (let key in param_dict) {
-            this.params[key] = param_dict[key];
-        }
-    }
-    y(x) {
-        return this.y_func(x); 
-    }
 }
 
 class Sat extends FunctionObject {
@@ -127,19 +122,6 @@ class Sat extends FunctionObject {
             this.y_func = this.sat[this.params.shape];
         }
     }
-
-    params(param_dict) {
-        for (let key in param_dict) {
-            this.params[key] = param_dict[key];
-        }
-    }
-    y(x) {
-        return this.y_func(x);
-    }
-
-    get_x_range() {
-        return [-1., 1.];
-    }
 }
 
 
@@ -148,6 +130,9 @@ class Envelope {
         // Ensure points are sorted by x-value
         this.points = points;
         this.env_length = this.get_length();
+        this.px = 0;
+        this.py = 0;
+        this.integral = 0;
     }
 
 
@@ -170,43 +155,71 @@ class Envelope {
         return 0;  // Return 0 if x is out of range
     }
 
+
     get_length() {
         return this.points[this.points.length-1][0];
+    }
+
+    integrate_y(x) {
+        let dt = x - this.px;  // Calculate the actual time step based on the new x-value
+        if (dt <= 0) { // if x value is lower than previous call: reset
+            this.integral = 0;
+            this.px = 0;
+            this.py = this.y(x);
+            return this.integral;
+        }
+        let y = this.y(x); // get new y val
+        // Trapezoidal rule to find area since the last call
+        let area = (this.py + y) * dt / 2;
+        this.integral += area; // accum area under curve
+        this.px = x; // assign x to previous x for next iteration
+        this.py = y; // assign y to previous y for next iteration
+
+        return this.integral;
     }
 
 }
 
 
-class ADSR {
+class ADSR extends Envelope {
     constructor(attack, decay, sustain, release) {
-        this.attack = attack || 10;
-        this.decay = decay || 50;
-        this.sustain = sustain || 0.5;
-        this.sustain_time = (attack + decay + release)/2 || 100;
-        this.release = release || 100;
-        this.length = this.attack + this.decay + this.sustain_time + this.release;
-        this.amount = 1;
-        this.offsety = 0;
-        this.input = undefined;
-        this.xrange = [0., this.length];
-
-        this.p = [
+        super([
             [0, 0],
-            [this.attack, 1],
-            [this.attack + this.decay, this.sustain],
-            [this.attack + this.decay + this.sustain_time, this.sustain],
-            [this.attack + this.decay + this.sustain_time + this.release, 0]
+            [attack, 1],
+            [attack + decay, sustain],
+            [attack + decay +  (attack + decay + release)/2, sustain],
+            [attack + decay + (attack + decay + release)/2 + release, 0]
+        ]);
+        
+        this.params = {
+            attack: attack,
+            decay: decay,
+            sustain: sustain,
+            sustain_time: (attack + decay + release)/2,
+            release: release,
+            length: attack + decay + (attack + decay + release)/2 + release,
+            amount: 1
+        }
+        
+        this.offsety = 0;
+        this.xrange = [0., this.params.length];
+        
+    }
+
+    set_params(param_dict) {
+        for (let key in param_dict) {
+            this.params[key] = param_dict[key];
+        }
+
+        this.points = [
+            [0, 0],
+            [this.params.attack, this.params.amount],
+            [this.params.attack + this.params.decay, this.params.amount*this.params.sustain],
+            [this.params.attack + this.params.decay + this.params.sustain_time, this.params.amount*this.params.sustain],
+            [this.params.attack + this.params.decay + this.params.sustain_time + this.params.release, 0]
         ];
 
-        this.envelope = new Envelope(this.p);
+        this.xrange = [0., this.get_length()];
     }
     
-    y(x) {
-        return this.envelope.y(x);
-    }
-
-    get_length() {
-        return this.envelope.env_length;
-    }
-
 }

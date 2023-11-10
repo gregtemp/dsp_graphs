@@ -5,7 +5,7 @@ class Graph {
     constructor(func, pos, size){
         this.pos = pos || [0, 0];
         this.size = size || [400, 100]
-        this.strokeWeight = 3;
+        this.strokeWeight = 2;
         this.stroke = 255;
         this.show_axis = true;
         this.drawable = true;
@@ -14,6 +14,7 @@ class Graph {
         this.trace = [0,0];
         this.xrange = [0, Math.PI * 2];
         this.func = func || undefined;
+        this.sample_rate = 1000;
         
     }
 
@@ -36,13 +37,20 @@ class Graph {
         
         // waveform
         beginShape();
-        for (let i = 0; i <= 1; i+= 1/500){
+        for (let i = 0; i <= 1; i+= 1/this.sample_rate){
             let x = i * Math.abs(this.xrange[1]-this.xrange[0]) + this.xrange[0];
             let y = func_object.y(x);
             vertex(i * this.size[0], -y * this.size[1]/2);
 
         }
         endShape();
+
+        if (this.mouse_inside) {
+            fill(255, 0, 0);
+            stroke(255, 0, 0);
+            
+            ellipse(this.trace[0], this.trace[1], 8);
+        }
 
         pop();
     }
@@ -66,6 +74,7 @@ class Graph {
                 ///
             }
             this.mouse_inside = true;
+            this.trace = [mx, -this.func.y(mx/this.size[0])*this.size];
         }
         else {
             this.mouse_inside = false;
